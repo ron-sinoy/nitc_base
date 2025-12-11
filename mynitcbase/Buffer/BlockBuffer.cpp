@@ -13,6 +13,12 @@ RecBuffer::RecBuffer(int blockNum) : BlockBuffer::BlockBuffer(blockNum) {}
 // load the block header into the argument pointer
 int BlockBuffer::getHeader(struct HeadInfo *head) {
 
+  unsigned char *bufferPtr;
+  int ret = loadBlockAndGetBufferPtr(&bufferPtr);
+  if (ret != SUCCESS) {
+    return ret;   
+  }
+
   unsigned char buffer[BLOCK_SIZE];
   Disk::readBlock(buffer, this->blockNum);
 
@@ -29,6 +35,12 @@ int BlockBuffer::getHeader(struct HeadInfo *head) {
 //get records 
 int RecBuffer::getRecord(union Attribute *rec, int slotNum) {
 
+  unsigned char *bufferPtr;
+  int ret = loadBlockAndGetBufferPtr(&bufferPtr);
+  if (ret != SUCCESS) {
+    return ret;
+  }
+
   struct HeadInfo head;
   BlockBuffer::getHeader(&head);
   int attrCount = head.numAttrs;
@@ -41,7 +53,26 @@ int RecBuffer::getRecord(union Attribute *rec, int slotNum) {
   unsigned char *slotPointer = buffer + (HEADER_SIZE+slotCount+(recordSize*slotNum));
 
   memcpy(rec, slotPointer, recordSize);
-
+ 
   return SUCCESS;
 }
 
+int BlockBuffer::loadBlockAndGetBufferPtr(unsigned char **buffPtr) {
+  // check whether the block is already present in the buffer using StaticBuffer.getBufferNum()
+  int bufferNum = StaticBuffer::getBufferNum(this->blockNum);
+
+  if (bufferNum == E_BLOCKNOTINBUFFER) {
+    bufferNum = StaticBuffer::getFreeBuffer(this->blockNum);
+
+    if (bufferNum == E_OUTOFBOUND) {
+      return E_OUTOFBOUND;
+    }
+
+    Disk::readBlock(StaticBuffer::blocks[bufferNum], this->blockNum);
+  }
+
+  // store the pointer to this buffer (blocks[bufferNum]) in *buffPtr
+  *buffPtr = StaticBuffer::blocks[bufferNum];
+
+  return SUCCESS;
+}
