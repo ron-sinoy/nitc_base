@@ -8,7 +8,7 @@ int AttrCacheTable::getAttrCatEntry(int relId, int attrOffset, AttrCatEntry* att
     if( relId <0 || relId>=12 ){
         return E_OUTOFBOUND;
     }
-    if (relCache[relId] == nullptr) {
+    if (attrCache[relId] == nullptr) {
         return E_RELNOTOPEN;
     }
 
@@ -24,13 +24,13 @@ int AttrCacheTable::getAttrCatEntry(int relId, int attrOffset, AttrCatEntry* att
   return E_ATTRNOTEXIST;
 }
 
-
 void AttrCacheTable::recordToAttrCatEntry(union Attribute record[ATTRCAT_NO_ATTRS],
                                           AttrCatEntry* attrCatEntry) {
   strcpy(attrCatEntry->relName, record[ATTRCAT_REL_NAME_INDEX].sVal);
-  attrCatEntry->numAttrs = record[ATTRCAT_NO_ATTRIBUTES_INDEX].nVal;
-  attrCatEntry->numRecs = record[ATTRCAT_NO_RECORDS_INDEX].nVal;
-  attrCatEntry->firstBlk = record[ATTRCAT_FIRST_BLOCK_INDEX].nVal;
-  attrCatEntry->lastBlk = record[ATTRCAT_LAST_BLOCK_INDEX].nVal;
-  attrCatEntry->numSlotsPerBlk = record[ATTRCAT_NO_SLOTS_PER_BLOCK_INDEX].nVal;
+  strcpy(attrCatEntry->attrName, record[ATTRCAT_ATTR_NAME_INDEX].sVal);
+  attrCatEntry->attrType = record[ATTRCAT_ATTR_TYPE_INDEX].nVal;
+  attrCatEntry->primaryFlag = record[ATTRCAT_PRIMARY_FLAG_INDEX].nVal;
+  attrCatEntry->rootBlock = record[ATTRCAT_ROOT_BLOCK_INDEX].nVal;
+  attrCatEntry->offset = record[ATTRCAT_OFFSET_INDEX].nVal;
+  // copy the rest of the fields in the record to the attrCacheEntry struct
 }
