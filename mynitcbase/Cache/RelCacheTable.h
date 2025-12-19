@@ -20,7 +20,6 @@ typedef struct RelCacheEntry {
   bool dirty;
   RecId recId;
   RecId searchIndex;
-
 } RelCacheEntry;
 
 class RelCacheTable {
