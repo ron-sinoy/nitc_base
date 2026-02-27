@@ -1,5 +1,5 @@
 #include "BlockBuffer.h"
-
+#include <iostream>
 #include <cstdlib>
 #include <cstring>
 
@@ -50,33 +50,64 @@ int RecBuffer::getRecord(union Attribute *rec, int slotNum) {
   Disk::readBlock(buffer, this->blockNum);
 
   int recordSize = attrCount * ATTR_SIZE;
-  unsigned char *slotPointer = buffer + (HEADER_SIZE+slotCount+(recordSize*slotNum));
+  unsigned char *slotPointer = bufferPtr + (HEADER_SIZE+slotCount+(recordSize*slotNum));
 
   memcpy(rec, slotPointer, recordSize);
  
   return SUCCESS;
 }
 
+int RecBuffer::setRecord(union Attribute *rec, int slotNum)
+{
+    unsigned char *buffer;
+    int ret = loadBlockAndGetBufferPtr(&buffer);
+
+    if(ret != SUCCESS) return ret;
+
+    struct HeadInfo head;
+    BlockBuffer::getHeader(&head);
+
+    int attrCnt = head.numAttrs;
+    int slotCnt = head.numSlots;
+
+    if(slotNum<0 || slotNum>= slotCnt)
+        return E_OUTOFBOUND;
+    
+    int recordSize = attrCnt * ATTR_SIZE;
+    unsigned char *slotPointer = buffer + (HEADER_SIZE+slotCnt+slotNum*recordSize);
+    memcpy(slotPointer,rec,recordSize);
+    // Disk::writeBlock(buffer, this->blockNum);
+
+    int retn = StaticBuffer::setDirtyBit(this->blockNum);
+
+    if(retn != SUCCESS) 
+        std::cout <<"Error in setDirty function"<<std::endl;
+        
+    return SUCCESS;
+}
+
 int BlockBuffer::loadBlockAndGetBufferPtr(unsigned char **buffPtr) {
-  // check whether the block is already present in the buffer using StaticBuffer.getBufferNum()
   int bufferNum = StaticBuffer::getBufferNum(this->blockNum);
 
   if (bufferNum == E_BLOCKNOTINBUFFER) {
     bufferNum = StaticBuffer::getFreeBuffer(this->blockNum);
-
     if (bufferNum == E_OUTOFBOUND) {
       return E_OUTOFBOUND;
     }
-
     Disk::readBlock(StaticBuffer::blocks[bufferNum], this->blockNum);
   }
 
-  // store the pointer to this buffer (blocks[bufferNum]) in *buffPtr
-  *buffPtr = StaticBuffer::blocks[bufferNum];
+  // always update timestamps
+  for (int i = 0; i < BUFFER_CAPACITY; i++) {
+    if (i == bufferNum)
+      StaticBuffer::metainfo[i].timeStamp = 0;
+    else
+      StaticBuffer::metainfo[i].timeStamp++;
+  }
 
+  *buffPtr = StaticBuffer::blocks[bufferNum];
   return SUCCESS;
 }
-
 int RecBuffer::getSlotMap(unsigned char *slotMap) {
   unsigned char *bufferPtr;
 

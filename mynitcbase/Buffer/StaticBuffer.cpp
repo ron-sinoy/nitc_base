@@ -5,47 +5,60 @@ struct BufferMetaInfo StaticBuffer::metainfo[BUFFER_CAPACITY];
 
 StaticBuffer::StaticBuffer() {
 
-  // initialise all blocks as free
   for (int bufferIndex = 0; bufferIndex<BUFFER_CAPACITY; bufferIndex++) {
     metainfo[bufferIndex].free = true;
+    metainfo[bufferIndex].dirty = false;
+    metainfo[bufferIndex].timeStamp = -1;
+    metainfo[bufferIndex].blockNum = -1;
   }
 }
 
-/*
-At this stage, we are not writing back from the buffer to the disk since we are
-not modifying the buffer. So, we will define an empty destructor for now. In
-subsequent stages, we will implement the write-back functionality here.
-*/
-StaticBuffer::~StaticBuffer() {}
+StaticBuffer::~StaticBuffer() {
+   for(int i = 0; i<BUFFER_CAPACITY; i++){
+    if(!metainfo[i].free && metainfo[i].dirty){
+      Disk::writeBlock(blocks[i],metainfo[i].blockNum); 
+    }
+   }
+    
+
+}
 
 int StaticBuffer::getFreeBuffer(int blockNum) {
-  if (blockNum < 0 || blockNum > DISK_BLOCKS) {
+  if (blockNum < 0 || blockNum >= DISK_BLOCKS) {
     return E_OUTOFBOUND;
   }
-  
-  // iterate through all the blocks in the StaticBuffer
-  // find the first free block in the buffer (check metainfo)
-  // assign allocatedBuffer = index of the free block
+  for(int i = 0; i<BUFFER_CAPACITY; i++){
+    if(!metainfo[i].free){
+      metainfo[i].timeStamp++;
+    }
+  }
+  int bufferNum = -1;
 
-  int allocatedBuffer;
   for (int bufferIndex = 0; bufferIndex<BUFFER_CAPACITY; bufferIndex++) {
-
-    if (metainfo[bufferIndex].free = true){
-    allocatedBuffer = bufferIndex;
+    if (metainfo[bufferIndex].free == true){
+    bufferNum = bufferIndex;
     break;
     }
   }
-
-
-  metainfo[allocatedBuffer].free = false;
-  metainfo[allocatedBuffer].blockNum = blockNum;
-
-  return allocatedBuffer;
+  int timeStampMax = -1;
+  if(bufferNum == -1){
+    for(int i = 0; i<BUFFER_CAPACITY; i++){
+      if(metainfo[i].timeStamp>timeStampMax){
+        timeStampMax = metainfo[i].timeStamp;
+        bufferNum = i;
+      }
+    }
+  }
+  if(metainfo[bufferNum].dirty){
+    Disk::writeBlock(blocks[bufferNum],metainfo[bufferNum].blockNum); 
+  }
+  metainfo[bufferNum].free = false;
+  metainfo[bufferNum].blockNum = blockNum;
+  metainfo[bufferNum].timeStamp = 0;
+  return bufferNum;
 }
 
-/* Get the buffer index where a particular block is stored
-   or E_BLOCKNOTINBUFFER otherwise
-*/
+
 int StaticBuffer::getBufferNum(int blockNum) {
   // Check if blockNum is valid (between zero and DISK_BLOCKS)
   // and return E_OUTOFBOUND if not valid.
@@ -62,4 +75,13 @@ int StaticBuffer::getBufferNum(int blockNum) {
   }
   // if block is not in the buffer
   return E_BLOCKNOTINBUFFER;
+}
+
+int StaticBuffer::setDirtyBit(int blockNum){
+    int bufferNum = StaticBuffer::getBufferNum(blockNum);
+    if(bufferNum == E_BLOCKNOTINBUFFER) return E_BLOCKNOTINBUFFER; 
+    if(bufferNum == E_OUTOFBOUND) return E_OUTOFBOUND;
+    
+    metainfo[bufferNum].dirty = true;
+    return SUCCESS;
 }
