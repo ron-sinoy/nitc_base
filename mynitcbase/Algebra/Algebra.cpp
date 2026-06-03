@@ -1,5 +1,7 @@
 #include "Algebra.h"
 #include <cstring>
+#include <cstdio>
+#include <cstdlib>
 #include <iostream>
 // will return if a string can be parsed as a floating point number
 bool isNumber(char *str) {
@@ -15,7 +17,7 @@ bool isNumber(char *str) {
     the string only contains a float with/without whitespace. else, there's other
     characters.
   */
-  int ret = scanf(str, "%f %n", &ignore, &len);
+  int ret = sscanf(str, "%f %n", &ignore, &len);
   return ret == 1 && len == strlen(str);
 }
 
@@ -112,3 +114,39 @@ int Algebra::select(char srcRel[ATTR_SIZE], char targetRel[ATTR_SIZE], char attr
   return SUCCESS;
 }
 
+int Algebra::insert(char relName[ATTR_SIZE], int numberOfAttributes, char record[][ATTR_SIZE]) {
+  int relId = OpenRelTable::getRelId(relName);
+  if (relId == E_RELNOTOPEN) {
+    return E_RELNOTOPEN;
+  }
+
+  RelCatEntry relCatEntry;
+  int ret = RelCacheTable::getRelCatEntry(relId, &relCatEntry);
+  if (ret != SUCCESS) {
+    return ret;
+  }
+
+  if (numberOfAttributes != relCatEntry.numAttrs) {
+    return E_NATTRMISMATCH;
+  }
+
+  Attribute attrRecord[relCatEntry.numAttrs];
+  for (int i = 0; i < relCatEntry.numAttrs; ++i) {
+    AttrCatEntry attrCatEntry;
+    ret = AttrCacheTable::getAttrCatEntry(relId, i, &attrCatEntry);
+    if (ret != SUCCESS) {
+      return ret;
+    }
+
+    if (attrCatEntry.attrType == NUMBER) {
+      if (!isNumber(record[i])) {
+        return E_ATTRTYPEMISMATCH;
+      }
+      attrRecord[i].nVal = atof(record[i]);
+    } else {
+      strcpy(attrRecord[i].sVal, record[i]);
+    }
+  }
+
+  return BlockAccess::insert(relId, attrRecord);
+}
