@@ -7,7 +7,7 @@ completed all 12 stages
 Eventhough it is a course project for NITC CSE,I did this as a personal project to understand how relational databases work by building one from scratch.
 ## Features
 
-- Create / drop tables and insert records
+- Create and drop tables and insert records
 - Linear search and SELECT with conditions
 - Then added better search and SELECT using B+tree indexing
 - PROJECT to pick specific columns
