@@ -10,7 +10,6 @@ Eventhough it is a course project for NITC CSE, I did this as a personal project
 - Create and drop tables and insert records
 - Linear search and SELECT with conditions
 - Then added better search and SELECT using B+tree indexing
-- PROJECT to pick specific columns
 - Equi-join across two relations
 
 ## Stack
