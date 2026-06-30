@@ -24,7 +24,3 @@ Eventhough it is a course project for NITC CSE, I did this as a personal project
 make
 ./nitcbase
 ```
-
-## Limitations
-
-No tuple deletion, no concurrency, equi-join only.
